@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MATH 550 Stage Cue Cards — Easy English</title>
+  <link rel="stylesheet" href="vendor/katex/katex.min.css" />
+  <script defer src="vendor/katex/katex.min.js"></script>
+  <script defer src="vendor/katex/auto-render.min.js"></script>
+  <style>
+    @import url("vendor/fonts/inter/400.css");
+    @import url("vendor/fonts/inter/600.css");
+    @import url("vendor/fonts/inter/700.css");
+    @import url("vendor/fonts/ibm-plex-mono/400.css");
+    @import url("vendor/fonts/ibm-plex-mono/600.css");
+
+    @page {
+      size: letter portrait;
+      margin: 0.32in 0.42in;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Inter", "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: #111827;
+      font-size: 9.2pt;
+      line-height: 1.38;
+      background: #ffffff;
+    }
+    .doc-header {
+      border-bottom: 2px solid #1f2328;
+      padding-bottom: 4px;
+      margin-bottom: 7px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .doc-header h1 {
+      font-size: 13pt;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .doc-header span {
+      font-size: 8.5pt;
+      color: #6b7280;
+      font-weight: 600;
+    }
+    .section-title {
+      font-size: 8.8pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #a40e26;
+      margin: 5px 0 5px 0;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 2px;
+    }
+    .cue-card {
+      border-left: 3.5px solid #cf222e;
+      padding: 3px 0 3px 10px;
+      margin-bottom: 7px;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .cue-card.qa {
+      border-left-color: #0550ae;
+    }
+    .cue-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 2px;
+    }
+    .cue-head .title {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #111827;
+    }
+    .cue-head .timing {
+      font-family: "IBM Plex Mono", Consolas, monospace;
+      font-size: 8.2pt;
+      font-weight: 600;
+      color: #4b5563;
+    }
+    .zh-cue {
+      font-size: 8.5pt;
+      color: #374151;
+      margin-bottom: 3px;
+    }
+    .point-tag {
+      display: inline-block;
+      font-size: 8pt;
+      font-weight: 700;
+      color: #0550ae;
+      background: #eff6ff;
+      padding: 0 5px;
+      border-radius: 3px;
+      margin-right: 4px;
+    }
+    .speak-list {
+      list-style: decimal;
+      padding-left: 16px;
+    }
+    .speak-list li {
+      margin-bottom: 2px;
+    }
+    .pause {
+      color: #9ca3af;
+      font-weight: 700;
+      margin: 0 2px;
+    }
+    .rescue-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-left: 3.5px solid #b45309;
+      padding: 7px 10px;
+      margin: 8px 0;
+      border-radius: 4px;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .rescue-box h3 {
+      font-size: 9.6pt;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 3px;
+    }
+    .rescue-box ul {
+      padding-left: 18px;
+      font-size: 9pt;
+    }
+    .boundary-box {
+      border-top: 2px solid #1f2328;
+      border-bottom: 2px solid #1f2328;
+      padding: 7px 0;
+      margin-top: 8px;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .boundary-box h3 {
+      font-size: 9.6pt;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .boundary-box ol {
+      padding-left: 18px;
+      font-size: 8.7pt;
+    }
+    .boundary-box li { margin-bottom: 2px; }
+    code {
+      font-family: "IBM Plex Mono", Consolas, monospace;
+      font-size: 0.9em;
+      background: #f3f4f6;
+      padding: 0 3px;
+      border-radius: 2px;
+    }
+    .page-break {
+      break-before: page;
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+  <div class="doc-header">
+    <h1>MATH 550 Stage Cue Cards — Easy English</h1>
+    <span>Zishun Liu · Slides 1–10 (~7:30 + Q&amp;A in 15-min slot)</span>
+  </div>
+
+  <div class="section-title">Main Slides (1–5) · 顺畅衔接 + 零小数大白话版</div>
+
+  <div class="cue-card">
+    <div class="cue-head"><span class="title">Slide 1 · Cover: Router Helper &amp; Better Tradeoff</span><span class="timing">0:00 – 0:30</span></div>
+    <div class="zh-cue"><span class="point-tag">指：小模型框 → 黄框 Router → 右下红框</span>开场直点主题：训练一个 Router 帮手，判断留小模型还是转大模型，拿到更好的速度-准确率折中。</div>
+    <ol class="speak-list">
+      <li>"Hi everyone, I am Zishun. <span class="pause">//</span> In this project, we train a simple <strong>router helper</strong> to get a <strong>better speed–accuracy tradeoff</strong> on math problems."</li>
+      <li>"A fast small model tries first. <span class="pause">//</span> Then our router helper judges the answer: <span class="pause">//</span> keep it, or send it to a large model."</li>
+      <li>"As shown in red, we cut waiting time <strong>almost in half</strong>, <span class="pause">//</span> with <strong>almost the same score</strong>."</li>
+    </ol>
+  </div>
+
+  <div class="cue-card">
+    <div class="cue-head"><span class="title">Slide 2 · Why Do We Need a Router?</span><span class="timing">0:30 – 1:10</span></div>
+    <div class="zh-cue"><span class="point-tag">指：左上 → 左下 → 右 → 底红框</span>小的快、大的准但慢四倍；所以要比时间；引出问题：小模型自己能行吗，还是需要 Router？</div>
+    <ol class="speak-list">
+      <li>"Why do we need a router helper?"</li>
+      <li>"We test two fixed models. <span class="pause">//</span> On the left, the small model is fast, <span class="pause">//</span> while the large model is more accurate, <span class="pause">//</span> <strong>but</strong> runs <strong>four times slower</strong> per token."</li>
+      <li>"Because of this speed gap, counting tokens alone is not fair—we must compare <strong>time</strong> too."</li>
+      <li>"So at the bottom: can the small model close this gap by itself, <span class="pause">//</span> or do we need a router to send hard problems to the large model?"</li>
+    </ol>
+  </div>
+
+  <div class="cue-card">
+    <div class="cue-head"><span class="title">Slide 3 · First Check: Five Baseline Options</span><span class="timing">1:10 – 1:55</span></div>
+    <div class="zh-cue"><span class="point-tag">指：表格 1 → 5 行</span>先看不用 Router 的五种简单做法：单试、自改、投票、静默思考、直接大模型。</div>
+    <ol class="speak-list">
+      <li>"First, let us check five baseline ways without a router."</li>
+      <li>"First, the small model tries once. <span class="pause">//</span> Second, Self-Refine checks its own answer and rewrites it."</li>
+      <li>"Third, Voting runs two random paths, <span class="pause">//</span> and uses a third if they disagree. <span class="pause">//</span> Fourth, Thinking Mode thinks silently first."</li>
+      <li>"Fifth, we just use the large model directly. <span class="pause">//</span> Only voting and thinking use randomness to try different paths."</li>
+    </ol>
+  </div>
+
+  <div class="cue-card">
+    <div class="cue-head"><span class="title">Slide 4 · Why Trying Harder Inside the Small Model Fails</span><span class="timing">1:55 – 2:40</span></div>
+    <div class="zh-cue"><span class="point-tag">指：左图柱 → 右标题 → 右下红框</span>单模型卷不动（自改无效、思考写爆、投票太慢）→ 自然过渡到下页：建一个 Router 帮手！</div>
+    <ol class="speak-list">
+      <li>"So what happens when the small model tries harder by itself? <span class="pause">//</span> Green is right, red is wrong, and brown means cut off."</li>
+      <li>"Self-Refine <strong>cannot</strong> fix its own finished mistakes. <span class="pause">//</span> Thinking Mode <strong>drops</strong> in score because almost <strong>half</strong> get cut off—shown by the tall brown bars."</li>
+      <li>"Voting helps, <span class="pause">//</span> <strong>but</strong> still takes too long."</li>
+      <li>"So staying inside the small model hits a wall. <span class="pause">//</span> Next, let us build our <strong>router helper</strong> to send hard problems to the big model."</li>
+    </ol>
+  </div>
+
+  <div class="cue-card">
+    <div class="cue-head"><span class="title">Slide 5 · Our Router Helper: Two-Step Rule</span><span class="timing">2:40 – 3:30</span></div>
+    <div class="zh-cue"><span class="point-tag">指：黄框 → 红框 → 中间公式 → 底右</span>先讲 Router 怎么判断：写爆必转；写完问“能救吗 + 值得等吗”→ 顺出下页：怎么提前预测这几个值？</div>
+    <ol class="speak-list">
+      <li>"Here is how our router helper judges when to ask the big model."</li>
+      <li>"Step one, the yellow box: if the small model gets <strong>cut off</strong>, we <strong>always</strong> send it to the big model, because cut-off answers get zero."</li>
+      <li>"Step two, the red box: if it finishes, we check the middle formula."</li>
+      <li>"It asks two simple questions: <span class="pause">//</span> <strong>can the big model fix it</strong>, <span class="pause">//</span> and <strong>is it worth the wait</strong>?"</li>
+      <li>"Unlike Confidence Gate, we check <strong>both</strong> gain and wait time. <span class="pause">//</span> Next, how do we predict those scores <strong>before</strong> running the big model?"</li>
+    </ol>
+  </div>
+
+  <div class="page-break"></div>
+
+  <div class="doc-header">
+    <h1>MATH 550 Stage Cue Cards — Slides 6–10</h1>
+    <span>Target 3:30 – 7:45 (Leaves ~7 min for Q&amp;A)</span>
+  </div>
+
+  <div class="cue-card">
+    <div class="cue-head"><span class="title">Slide 6 · How We Train the Helper: Clues &amp; Class Models</span><span class="timing">3:30 – 4:20</span></div>
+    <div class="zh-cue"><span class="point-tag">指：顶三格 → 左 6 线索 → 右 3 模型</span>回答上页问题：三份数据防作弊；抓 6 个实时线索（藏起难度）；用课上 3 个简单线性模型来预测。</div>
+    <ol class="speak-list">
+      <li>"To make that judgment right after the small model finishes, we train our helper without cheating."</li>
+      <li>"At the top, we split the data into training, <span class="pause">//</span> validation to lock settings, <span class="pause">//</span> and test <strong>only for reporting</strong>."</li>
+      <li>"On the left, we grab <strong>six</strong> real-time clues—like confidence and answer length—with problem difficulty hidden."</li>
+      <li>"On the right, we put them into <strong>three</strong> simple linear models from class: <span class="pause">//</span> two predict if each model is right, <span class="pause">//</span> and one predicts big-model wait time."</li>
+      <li>"Simple linear models match tree models here, and are safer."</li>
+    </ol>
+  </div>
+
+  <div class="cue-card">
+    <div class="cue-head"><span class="title">Slide 7 · Main Results: A Better Tradeoff in Time</span><span class="timing">4:20 – 5:10</span></div>
+    <div class="zh-cue"><span class="point-tag">指：右图蓝+ → 左图红线 vs 蓝线</span>终于看有没有拿到更好折中！右图 token 输；左图速度翻盘，时间砍近半，同切换数赢蓝线 ConfGate。</div>
+    <ol class="speak-list">
+      <li>"Now, did our router helper actually get a <strong>better tradeoff</strong>? <span class="pause">//</span> Higher and farther left is better."</li>
+      <li>"Look at the <strong>right plot</strong> first for raw tokens. <span class="pause">//</span> Here the blue plus—the big model alone—wins, <span class="pause">//</span> because we always run the small model first."</li>
+      <li>"Now look at the <strong>left plot</strong> for estimated time. <span class="pause">//</span> Because the small model is much faster, the ranking flips!"</li>
+      <li>"Our red line cuts waiting time <strong>almost in half</strong> compared to the big model, <span class="pause">//</span> with only a small drop in score."</li>
+      <li>"At the same switches, we are also faster and higher than the blue Confidence Gate."</li>
+    </ol>
+  </div>
+
+  <div class="cue-card">
+    <div class="cue-head"><span class="title">Slide 8 · Why Gains Are Modest &amp; Smart Skip Example</span><span class="timing">5:10 – 6:05</span></div>
+    <div class="zh-cue"><span class="point-tag">指：第1组红跳 → 第2组灰柱 → 蓝框</span>第 1 组写爆大赚；第 2 组几乎不赚还巨慢；猜救回难；右下例子跳过省时间。</div>
+    <ol class="speak-list">
+      <li>"Why isn't the gain larger? <span class="pause">//</span> Here we split test problems into <strong>ten</strong> groups, from least to most confident."</li>
+      <li>"Black is the small model, red is the big model, <span class="pause">//</span> and gray bars show how long the big model writes."</li>
+      <li>"In <strong>group one</strong>, cut-off answers get a <strong>huge red jump</strong>. <span class="pause">//</span> In <strong>group two</strong>, the red jump is tiny, while the gray bar is huge."</li>
+      <li>"Our clues spot small-model errors well, <span class="pause">//</span> <strong>but</strong> it is hard to guess what the big model can fix."</li>
+      <li>"In the bottom-right example, Confidence Gate sends it. <span class="pause">//</span> Our helper sees the big model will also fail slowly—so it <strong>skips</strong> it and saves time."</li>
+    </ol>
+  </div>
+
+  <div class="cue-card">
+    <div class="cue-head"><span class="title">Slide 9 · Statistical Checks</span><span class="timing">6:05 – 6:55</span></div>
+    <div class="zh-cue"><span class="point-tag">指：左图重叠 → 右红条 → 右蓝灰条</span>左图单看重叠；右图同题配对消噪音；红条真赢；蓝灰太接近，不吹追平大模型。</div>
+    <ol class="speak-list">
+      <li>"Next, are these gains statistically real?"</li>
+      <li>"On the left, error bars overlap. <span class="pause">//</span> On the right, we compare on the <strong>same problems</strong>, which removes difficulty noise."</li>
+      <li>"After multiple testing checks, the <strong>four red bars</strong> show real wins over all small-model baselines, <span class="pause">//</span> including only sending cut-off answers."</li>
+      <li>"The blue and gray bars are <strong>too close to call</strong>."</li>
+      <li>"So we do <strong>not</strong> claim we match the big model in accuracy—we trade a little accuracy for much faster speed."</li>
+    </ol>
+  </div>
+
+  <div class="cue-card">
+    <div class="cue-head"><span class="title">Slide 10 · Validation Check, Limits &amp; Wrap-Up</span><span class="timing">6:55 – 7:45</span></div>
+    <div class="zh-cue"><span class="point-tag">指：左表+蓝框 → 右 3 条总结</span>救写爆与省时间两边都稳；写完排序加分仅见于测试集；总结致谢。</div>
+    <ol class="speak-list">
+      <li>"Finally, let us check what holds across datasets."</li>
+      <li>"On the left, two results hold on <strong>both</strong> validation and test: <span class="pause">//</span> rescuing cut-off answers, <span class="pause">//</span> and saving time over Confidence Gate."</li>
+      <li>"However, the extra gain on finished answers appeared <strong>only on test</strong>, <span class="pause">//</span> because the two models are close and hit the same length limit."</li>
+      <li>"To wrap up: <span class="pause">//</span> send cut-off answers first, <span class="pause">//</span> and route by gain minus wait time for a better tradeoff. <span class="pause">//</span> Thank you—any questions?"</li>
+    </ol>
+  </div>
+
+  <div class="page-break"></div>
+
+  <div class="doc-header">
+    <h1>Q&amp;A Easy Replies, Emergency Lines &amp; Safety Rules</h1>
+    <span>Backup Slides B1–B5</span>
+  </div>
+
+  <div class="cue-card qa">
+    <div class="cue-head"><span class="title">Q1 · "Why didn't Tier-2 lift Validation? How did you pick λ?"</span><span class="timing">→ Click B1 / B2</span></div>
+    <ol class="speak-list">
+      <li>"On validation, Tier two gave zero extra gain; that extra gain only appeared on test, and we report that honestly."</li>
+      <li>"Across our penalty grid, test accuracy stays almost flat—so we do not claim one best lambda."</li>
+    </ol>
+  </div>
+
+  <div class="cue-card qa">
+    <div class="cue-head"><span class="title">Q2 · "Why do Fig 4A bars overlap when 4B is significant?"</span><span class="timing">→ Slide 9</span></div>
+    <ol class="speak-list">
+      <li>"The left plot checks each method alone. The right plot compares them on the <strong>same</strong> problems, removing difficulty noise."</li>
+      <li>"Four red bars pass multiple testing, while voting and the big model are too close to call."</li>
+    </ol>
+  </div>
+
+  <div class="cue-card qa">
+    <div class="cue-head"><span class="title">Q3 · "What about batch serving or a different GPU?"</span><span class="timing">→ Click B3</span></div>
+    <ol class="speak-list">
+      <li>"In large batches, our router ties voting in speed."</li>
+      <li>"For other GPUs, Backup B3 shows a shaded pink band of speed ratios where our router is fastest—and our GPU sits right inside that band."</li>
+    </ol>
+  </div>
+
+  <div class="cue-card qa">
+    <div class="cue-head"><span class="title">Q4 · "How did you calibrate and check grading?"</span><span class="timing">→ Click B4</span></div>
+    <ol class="speak-list">
+      <li>"We picked calibration by lowest error on validation, before seeing test."</li>
+      <li>"We also fixed two formatting bugs in the math grader across all outputs, and our main findings stayed the same."</li>
+    </ol>
+  </div>
+
+  <div class="rescue-box">
+    <h3>忘词救场万能句（卡壳时随便说一句，然后切下一页）</h3>
+    <ul>
+      <li><code>"As you can see on the slide, the red line is faster."</code>（指着图说红线更快）</li>
+      <li><code>"The exact numbers are right here on the slide."</code>（细节都在幻灯片上）</li>
+      <li><code>"Let me move to the next slide."</code>（直接看下一页）</li>
+    </ul>
+  </div>
+
+  <div class="boundary-box">
+    <h3>Seven Safety Rules (Never Overclaim)</h3>
+    <ol>
+      <li><strong>Tier-2 lift:</strong> Say <code>+2.4%</code> appeared on <strong>Test</strong>; always state Val showed <code>0</code> Tier-2 gain (and Dev CV was near random).</li>
+      <li><strong>vs. 8B Direct:</strong> State the trade-off (<code>−3.0%</code> acc, <code>−40.5%</code> est. latency) — never say "equivalent" or "non-inferior".</li>
+      <li><strong>vs. SC / ConfGate:</strong> Never claim significant accuracy win after Holm; cite <code>−5.6 s</code> latency savings at matched <code>k = 123</code>.</li>
+      <li><strong>Amber random lines:</strong> Note they use <strong>unadjusted</strong> bootstrap intervals.</li>
+      <li><strong>Lambda ($\lambda$):</strong> Say <strong>flat sensitivity (<code>75.0%–75.6%</code>)</strong> — never say $\lambda = 0.0015$ is optimal.</li>
+      <li><strong>Latency:</strong> Always say <strong>estimated serial latency</strong> (excludes queueing and model switching) and acknowledge <code>+36.7%</code> raw tokens.</li>
+      <li><strong>Splits:</strong> Always describe Test as <strong>used only for reporting in the current pipeline</strong> (avoid claiming unseen-history isolation).</li>
+    </ol>
+  </div>
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  if (typeof renderMathInElement === "function") {
+    renderMathInElement(document.body, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "$", right: "$", display: false }
+      ],
+      throwOnError: true
+    });
+  }
+  window.__katexReady = true;
+});
+</script>
+</body>
+</html>

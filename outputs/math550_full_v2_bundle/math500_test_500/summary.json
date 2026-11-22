@@ -1,0 +1,98 @@
+{
+  "atom1_1.7b_nonthink": {
+    "count": 500,
+    "accuracy": 0.682,
+    "statuses": {
+      "correct": 341,
+      "wrong": 106,
+      "invalid": 0,
+      "truncated": 53
+    },
+    "truncated_rate": 0.106,
+    "invalid_rate": 0.0,
+    "mean_out_tokens": 777.35,
+    "mean_latency_s": 0.5619577753419999
+  },
+  "atom2_1.7b_self_refine": {
+    "count": 500,
+    "accuracy": 0.698,
+    "statuses": {
+      "correct": 349,
+      "wrong": 149,
+      "invalid": 0,
+      "truncated": 2
+    },
+    "truncated_rate": 0.004,
+    "invalid_rate": 0.0,
+    "mean_out_tokens": 245.808,
+    "mean_latency_s": 0.42025980446400174
+  },
+  "atom3_1.7b_sample0_acc": 0.694,
+  "atom3_count": 500,
+  "atom4_8b_nonthink": {
+    "count": 500,
+    "accuracy": 0.776,
+    "statuses": {
+      "correct": 388,
+      "wrong": 64,
+      "invalid": 0,
+      "truncated": 48
+    },
+    "truncated_rate": 0.096,
+    "invalid_rate": 0.0,
+    "mean_out_tokens": 759.394,
+    "mean_latency_s": 2.452588720036001
+  },
+  "atom5_1.7b_thinking": {
+    "count": 500,
+    "accuracy": 0.564,
+    "statuses": {
+      "correct": 282,
+      "wrong": 7,
+      "invalid": 0,
+      "truncated": 211
+    },
+    "truncated_rate": 0.422,
+    "invalid_rate": 0.0,
+    "mean_out_tokens": 3151.13,
+    "mean_latency_s": 3.726289044877998
+  },
+  "self_refine_flips": {
+    "right_to_right": 341,
+    "right_to_wrong": 0,
+    "wrong_to_right": 8,
+    "wrong_to_wrong": 151
+  },
+  "level_accuracy": {
+    "level_1": {
+      "qwen3_1.7b_acc": 0.9302325581395349,
+      "qwen3_8b_acc": 0.9767441860465116
+    },
+    "level_2": {
+      "qwen3_1.7b_acc": 0.8444444444444444,
+      "qwen3_8b_acc": 0.9444444444444444
+    },
+    "level_3": {
+      "qwen3_1.7b_acc": 0.8285714285714286,
+      "qwen3_8b_acc": 0.8857142857142857
+    },
+    "level_4": {
+      "qwen3_1.7b_acc": 0.65625,
+      "qwen3_8b_acc": 0.75
+    },
+    "level_5": {
+      "qwen3_1.7b_acc": 0.40298507462686567,
+      "qwen3_8b_acc": 0.5373134328358209
+    }
+  },
+  "features_all_finite": true,
+  "common_12_count": 500,
+  "common_14_count": 500,
+  "common_15_count": 500,
+  "atom3_all_3_distinct": 496,
+  "elapsed_minutes": 109.25,
+  "gpu_name": "NVIDIA L4",
+  "engine": "vllm",
+  "max_new_tokens_non_think": 2048,
+  "max_new_tokens_critique": 512
+}

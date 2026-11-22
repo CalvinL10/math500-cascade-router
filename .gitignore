@@ -1,0 +1,25 @@
+# Python & pytest caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.pytest_tmp/
+pytest_tmp/
+
+# Local OS & editor files
+.DS_Store
+Thumbs.db
+
+# Local course recordings & transcripts
+20261113zoom record/
+*转写结果.txt
+
+# Legacy pilot archives & temporary audit outputs
+math550_pilot_bundle/
+math550_pilot_bundle.zip
+outputs/math550_pilot_v2_bundle/
+outputs/phase2_3/aux/
+outputs/red_team_audit/
+
+# Generated slide PNG previews (PDFs & cropped assets stay tracked)
+slides/preview_pdf/

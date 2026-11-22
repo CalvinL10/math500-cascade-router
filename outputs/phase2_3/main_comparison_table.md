@@ -1,0 +1,21 @@
+| method | dispatch_mode | escalation_rate_pct | accuracy_pct | correct_count | truncated_pct | mean_tokens | est_serial_latency_s | amortized_batch_s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Atom 1: 1.7B Non-Think (1-Pass) | single | 0.0 | 69.00 | 345 | 10.6 | 777.4 | 11.56 | 0.562 |
+| Truncation-Only Fallback (1.7B -> 8B) | cascade | 10.6 | 73.00 | 365 | 5.4 | 955.5 | 22.31 | 0.825 |
+| Atom 2: 1.7B Self-Refine | single | 0.0 | 70.60 | 353 | 0.4 | 1173.1 | 17.45 | 1.180 |
+| Atom 3a: 1.7B Adaptive SC (2->3 paths) | single | 0.0 | 73.80 | 369 | 5.0 | 1950.6 | 29.01 | 1.125 |
+| Atom 3b: 1.7B 3-Path Majority SC | single | 0.0 | 73.80 | 369 | 5.0 | 2310.5 | 34.36 | 1.460 |
+| Atom 5: 1.7B Thinking (max=4096) | single | 0.0 | 56.80 | 284 | 42.2 | 3151.1 | 49.02 | 3.726 |
+| Pre-Gen Direct Router (q_len, Val 20%) | direct | 21.8 | 72.60 | 363 | 10.6 | 757.2 | 22.95 | 0.973 |
+| Pre-Gen Direct Router (q_len, Val 30%) | direct | 34.0 | 73.60 | 368 | 10.6 | 758.4 | 28.29 | 1.202 |
+| Naive ConfGate (Val 20%) | cascade | 18.4 | 73.20 | 366 | 8.2 | 1064.7 | 28.90 | 1.017 |
+| Naive ConfGate (Matched k=123) | cascade | 24.6 | 74.00 | 370 | 8.8 | 1130.6 | 32.88 | 1.170 |
+| Hurdle + Trunc Priority (Val 20%) | cascade | 24.4 | 75.40 | 377 | 5.6 | 1036.0 | 27.17 | 1.153 |
+| Cost-Aware Router (Ours, Val 12%) | cascade | 14.0 | 73.40 | 367 | 5.4 | 974.7 | 23.47 | 0.905 |
+| Cost-Aware Router (Ours, Val 20%) | cascade | 24.6 | 75.40 | 377 | 5.6 | 1037.9 | 27.28 | 1.158 |
+| Cost-Aware Router (Ours, Val 25%) | cascade | 29.6 | 76.00 | 380 | 5.6 | 1072.1 | 29.35 | 1.281 |
+| Cost-Aware Router (Ours, Val 30%) | cascade | 33.2 | 75.80 | 379 | 5.6 | 1093.8 | 30.66 | 1.371 |
+| Cost-Aware Router (Ours, Val 40%) | cascade | 43.4 | 75.60 | 378 | 6.2 | 1161.8 | 34.76 | 1.618 |
+| Cost-Aware Router (Ours, Val 50%) | cascade | 56.8 | 76.80 | 384 | 6.4 | 1234.6 | 39.16 | 1.950 |
+| Atom 4: 8B Non-Think (Direct) | direct | 100.0 | 78.40 | 392 | 9.6 | 759.4 | 45.82 | 2.453 |
+| 100% Cascade (1.7B -> 8B) | cascade | 100.0 | 78.40 | 392 | 9.6 | 1536.7 | 57.38 | 3.015 |

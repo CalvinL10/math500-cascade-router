@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cost-Aware Inference Routing for Mathematical Reasoning — MATH 550</title>
+  <link rel="stylesheet" href="vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="vendor/katex/katex.min.js"></script>
+  <script defer src="vendor/katex/auto-render.min.js"></script>
+</head>
+<body>
+<div class="deck">
+
+  <!-- ==================== SLIDE 1: TITLE & CORE QUESTION ==================== -->
+  <section class="slide title-slide" id="slide-1" style="padding-top: 52px; padding-bottom: 48px;">
+    <div class="title-hero" style="margin-top: 8px;">
+      <div class="title-kicker">MATH 550 · Statistical Consulting and Data Analysis · Fall 2026</div>
+      <h1 class="title-main" style="font-size: 33px; margin-bottom: 16px;">
+        Smart Routing for Math Reasoning:<br>A Better Speed–Accuracy Tradeoff
+      </h1>
+      <p class="title-sub" style="font-size: 16px; margin-bottom: 22px;">
+        Training a Cost-Aware Router Helper (<code>1.7B → 8B</code>) on <code>MATH-500</code> &nbsp;·&nbsp; Zishun Liu &nbsp;·&nbsp; November 18, 2026
+      </p>
+      <div class="title-divider"></div>
+    </div>
+
+    <!-- Clean Visual Story Diagram Matching Router Helper Mental Model -->
+    <div style="margin: 10px auto 6px auto; width: 100%; max-width: 1080px;">
+      <svg viewBox="0 0 1080 230" width="100%" height="220" xmlns="http://www.w3.org/2000/svg" font-family="Inter, Segoe UI, sans-serif">
+        <!-- Step 1: Math Problem -->
+        <rect x="15" y="70" width="155" height="86" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+        <text x="92" y="106" text-anchor="middle" font-size="14.5" font-weight="700" fill="#111827">Math Problem</text>
+        <text x="92" y="130" text-anchor="middle" font-size="12.5" fill="#6B7280">Frozen Models</text>
+
+        <!-- Arrow 1 -> 2 -->
+        <line x1="170" y1="113" x2="208" y2="113" stroke="#64748B" stroke-width="2"/>
+        <polygon points="208,113 199,108 199,118" fill="#64748B"/>
+
+        <!-- Step 2: Fast Small Model -->
+        <rect x="212" y="62" width="205" height="102" rx="6" fill="#FFFFFF" stroke="#1F2328" stroke-width="1.8"/>
+        <text x="314" y="94" text-anchor="middle" font-size="14.5" font-weight="700" fill="#111827">Small Model First</text>
+        <text x="314" y="118" text-anchor="middle" font-size="13" font-weight="600" fill="#374151">Qwen3-1.7B (4× Faster)</text>
+        <text x="314" y="141" text-anchor="middle" font-size="12" fill="#6B7280">Baseline: 69.0% Accuracy</text>
+
+        <!-- Arrow 2 -> 3 -->
+        <line x1="417" y1="113" x2="455" y2="113" stroke="#CF222E" stroke-width="2.2"/>
+        <polygon points="455,113 446,108 446,118" fill="#CF222E"/>
+
+        <!-- Step 3: Router Helper (Judge) -->
+        <rect x="459" y="56" width="212" height="114" rx="6" fill="#FFFBEB" stroke="#B45309" stroke-width="1.8"/>
+        <text x="565" y="90" text-anchor="middle" font-size="15" font-weight="700" fill="#92400E">Router Helper</text>
+        <text x="565" y="114" text-anchor="middle" font-size="13" font-weight="600" fill="#78350F">Judges 1.7B Answer</text>
+        <text x="565" y="138" text-anchor="middle" font-size="12" fill="#78350F">Keep or Route to 8B?</text>
+
+        <!-- Fork Arrows -->
+        <line x1="671" y1="113" x2="695" y2="113" stroke="#64748B" stroke-width="2"/>
+        <line x1="695" y1="50" x2="695" y2="174" stroke="#64748B" stroke-width="2"/>
+        <line x1="695" y1="50" x2="722" y2="50" stroke="#64748B" stroke-width="1.8"/>
+        <polygon points="722,50 713,45 713,55" fill="#64748B"/>
+        <line x1="695" y1="174" x2="722" y2="174" stroke="#CF222E" stroke-width="2.2"/>
+        <polygon points="722,174 713,169 713,179" fill="#CF222E"/>
+
+        <!-- Keep 1.7B -->
+        <rect x="726" y="12" width="340" height="78" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.4"/>
+        <text x="746" y="42" font-size="14" font-weight="700" fill="#374151">Looks Good / Not Worth Wait → Keep 1.7B</text>
+        <text x="746" y="66" font-size="12.5" fill="#6B7280">Fast answer (also beats single-model retries)</text>
+
+        <!-- Route to 8B -->
+        <rect x="726" y="126" width="340" height="92" rx="6" fill="#FEF2F2" stroke="#CF222E" stroke-width="1.8"/>
+        <text x="746" y="156" font-size="14" font-weight="700" fill="#A40E26">Cut Off or Fixable &amp; Fast → Route to 8B</text>
+        <text x="746" y="180" font-size="12.8" fill="#1F2328">Better Speed–Accuracy Tradeoff:</text>
+        <text x="746" y="201" font-size="12.8" font-weight="700" fill="#CF222E">75.4% Accuracy · 40.5% Faster than All-8B</text>
+      </svg>
+    </div>
+
+    <div class="slide-footer">
+      <span>MATH 550 Final Project · Cost-Aware Inference Routing</span>
+      <span class="page-num">1 / 10</span>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 2: MOTIVATION & TRADEOFF GAP ==================== -->
+  <section class="slide" id="slide-2">
+    <div class="slide-header">
+      <div class="kicker-row"><span class="kicker">01 · Why We Need a Router</span></div>
+      <h1 class="slide-title">Small Models Are 4× Faster, Creating a Speed–Accuracy Tradeoff</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body" style="justify-content: space-between; padding-top: 8px;">
+      <!-- Top Two Model Comparison Cards -->
+      <div class="two-col-open" style="flex: 0 0 auto; gap: 0;">
+        <div class="col-left">
+          <h2 class="col-head" style="font-size: 16px;">Two Frozen Models on <code>MATH-500</code></h2>
+          <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px;">
+            <div class="clean-panel">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                <span class="strong" style="font-size: 15.5px;">Qwen3-1.7B (Small &amp; Fast)</span>
+                <span class="pill blue">67.2 tok/s on L4 GPU</span>
+              </div>
+              <p style="font-size: 14px;">
+                Gets <strong>69.0%</strong> accuracy in only <strong>11.6 s</strong> per problem (~777 tokens).
+              </p>
+            </div>
+
+            <div class="clean-panel blue">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                <span class="strong" style="font-size: 15.5px;">Qwen3-8B (Large &amp; Slow)</span>
+                <span class="pill crimson">16.6 tok/s · 4.06× Slower</span>
+              </div>
+              <p style="font-size: 14px;">
+                Reaches <strong>78.4%</strong> accuracy, but takes <strong>45.8 s</strong> per problem (~759 tokens).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-right">
+          <h2 class="col-head" style="font-size: 16px;">Why Time Matters More Than Token Count</h2>
+          <ul class="clean-list" style="gap: 15px; margin-top: 12px;">
+            <li style="font-size: 14.5px; line-height: 1.5;">
+              <span class="strong">Same length, 4× speed gap:</span> Both models write ~770 tokens, yet one <code>8B</code> token takes <strong>4× longer</strong> than one <code>1.7B</code> token.
+            </li>
+            <li style="font-size: 14.5px; line-height: 1.5;">
+              <span class="strong">Why counting tokens misleads:</span> Measuring only token count hides how slow the large model really is—so we track <strong>both</strong> tokens and estimated time.
+            </li>
+            <li style="font-size: 14.5px; line-height: 1.5;">
+              <span class="strong">The tradeoff we want:</span> Keep fast <code>1.7B</code> answers when possible, and ask <code>8B</code> only when needed.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Bottom Core Question Banner -->
+      <div class="clean-panel crimson" style="margin-top: 14px; display: flex; justify-content: space-between; align-items: center; padding: 14px 22px;">
+        <div>
+          <span class="strong" style="font-size: 15px; color: var(--crimson-deep);">Next Question:</span>
+          <span style="font-size: 14.5px; color: var(--ink); margin-left: 6px;">
+            Can trying harder inside <code>1.7B</code> close this gap, or do we need a Router Helper to send hard cases to <code>8B</code>?
+          </span>
+        </div>
+        <span class="mono" style="font-size: 12.5px;">Est. Latency = out_tokens / L4_TPS</span>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span>MATH 550 Final Project · Cost-Aware Inference Routing</span>
+      <span class="page-num">2 / 10</span>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 3: THE 5 BASELINE STRATEGIES ==================== -->
+  <section class="slide" id="slide-3">
+    <div class="slide-header">
+      <div class="kicker-row"><span class="kicker">02 · First Check: Baseline Strategies</span></div>
+      <h1 class="slide-title">Can the Small Model Just Try Harder? (Five Baseline Options)</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body" style="justify-content: space-between; padding-top: 4px;">
+      <table class="booktabs strategy-table">
+        <thead>
+          <tr>
+            <th style="width: 21%;">Strategy</th>
+            <th style="width: 19%;">Mode &amp; Decoding</th>
+            <th style="width: 40%;">How It Works (Plain View)</th>
+            <th class="num" style="width: 10%;">Acc</th>
+            <th class="num" style="width: 10%;">Est. Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. 1.7B Single Pass</strong></td>
+            <td><span class="pill">Direct</span> <span class="pill blue">Greedy</span></td>
+            <td>Write step-by-step solution once (max 2K tokens). Fast baseline.</td>
+            <td class="num"><strong>69.0%</strong></td>
+            <td class="num">11.6 s</td>
+          </tr>
+          <tr>
+            <td><strong>2. Self-Refine</strong></td>
+            <td><span class="pill">Direct</span> <span class="pill blue">Greedy</span></td>
+            <td>Write draft → ask <code>1.7B</code> to review its own draft → rewrite if needed.</td>
+            <td class="num">70.6%</td>
+            <td class="num">17.4 s</td>
+          </tr>
+          <tr>
+            <td><strong>3. Adaptive SC (2→3)</strong></td>
+            <td><span class="pill">Direct</span> <span class="pill amber">Sampling</span></td>
+            <td>Run 2 random paths; stop early if they agree, else use 3rd path to vote.</td>
+            <td class="num">73.8%</td>
+            <td class="num">29.0 s</td>
+          </tr>
+          <tr>
+            <td><strong>4. 1.7B Thinking (4K)</strong></td>
+            <td><span class="pill crimson">Think</span> <span class="pill amber">Sampling</span></td>
+            <td>Think silently inside <code>&lt;think&gt;...&lt;/think&gt;</code> first, then write answer (max 4K).</td>
+            <td class="num">56.8%</td>
+            <td class="num">49.0 s</td>
+          </tr>
+          <tr class="row-midrule">
+            <td><strong>5. 8B Direct</strong></td>
+            <td><span class="pill">Direct</span> <span class="pill blue">Greedy</span></td>
+            <td>Skip <code>1.7B</code> completely; solve directly with the large <code>8B</code> model.</td>
+            <td class="num"><strong>78.4%</strong></td>
+            <td class="num">45.8 s</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="two-col-open" style="flex: 0 0 auto; border-top: 1px solid var(--rule); padding-top: 12px; margin-top: 6px;">
+        <div class="col-left">
+          <p style="font-size: 13.8px; line-height: 1.48;">
+            <span class="strong">Why Greedy vs. Sampling?</span> Greedy picks the top word every time so single-pass results are repeatable. Sampling adds controlled randomness so voting gets <strong>diverse paths</strong>.
+          </p>
+        </div>
+        <div class="col-right">
+          <p style="font-size: 13.8px; line-height: 1.48;">
+            <span class="strong">Direct vs. Thinking?</span> Both write step-by-step math! <em>Thinking</em> adds a hidden scratchpad before answering, which uses far more tokens.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span>MATH 550 Final Project · Cost-Aware Inference Routing</span>
+      <span class="page-num">3 / 10</span>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 4: WHY SINGLE-MODEL SCALING STRUGGLES ==================== -->
+  <section class="slide" id="slide-4">
+    <div class="slide-header">
+      <div class="kicker-row"><span class="kicker">03 · Single-Model Limits</span></div>
+      <h1 class="slide-title">Why Trying Harder Inside 1.7B Fails or Costs Too Much</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body">
+      <div class="split-cols" style="grid-template-columns: 1.5fr 1fr; gap: 26px; align-items: stretch;">
+        <div class="fig-wrap" style="justify-content: center;">
+          <img src="assets/fig2ab_slide.png" alt="Figure 2A and 2B: Outcome Decomposition and Accuracy by Level" style="max-height: 490px;" />
+          <div class="fig-caption">
+            <strong>Figure 2.</strong> Left: <span class="accent-green">green = right</span>, <span class="accent-crimson">red = wrong</span>, <span class="accent-amber">brown = cut off</span>. Right: harder problems (Levels 1–5) drop accuracy and raise cut-offs.
+          </div>
+        </div>
+
+        <div style="border-left: 1px solid var(--rule); padding-left: 24px; display: flex; flex-direction: column; justify-content: center; gap: 14px;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+              <h2 class="col-head" style="margin-bottom: 0;">Self-Refine</h2>
+              <span class="accent-blue" style="font-size: 13.5px;">69.0% → 70.6%</span>
+            </div>
+            <ul class="clean-list blue-dots" style="gap: 4px;">
+              <li style="font-size: 13.8px;"><span class="strong">Cannot fix its own finished mistakes.</span><br><span style="font-size: 12.6px; color: var(--muted);">0 / 102 completed errors fixed; gain comes only from finishing <code>8</code> cut-off drafts.</span></li>
+            </ul>
+          </div>
+
+          <div class="horiz-divider" style="margin: 2px 0;"></div>
+
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+              <h2 class="col-head" style="margin-bottom: 0;">Thinking Mode (4K Cap)</h2>
+              <span class="accent-amber" style="font-size: 13.5px;">56.8% · 49.0 s</span>
+            </div>
+            <ul class="clean-list" style="gap: 4px;">
+              <li style="font-size: 13.8px;"><span class="strong">Gets cut off too often (tall brown bars).</span><br><span style="font-size: 12.6px; color: var(--muted);"><code>42.2%</code> hit the 4K cap (<code>34.8%</code> in <code>&lt;think&gt;</code>, <code>7.4%</code> in body), dropping total score despite <code>98.3%</code> when finished.</span></li>
+            </ul>
+          </div>
+
+          <div class="horiz-divider" style="margin: 2px 0;"></div>
+
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+              <h2 class="col-head" style="margin-bottom: 0;">Adaptive SC (2→3 Paths)</h2>
+              <span class="accent-green" style="font-size: 13.5px;">73.8% · 29.0 s</span>
+            </div>
+            <ul class="clean-list muted-dots" style="gap: 4px;">
+              <li style="font-size: 13.8px;"><span class="strong">Helps accuracy, but still takes too long.</span><br><span style="font-size: 12.6px; color: var(--muted);">Runs 2–3 random paths, averaging <code>29.0 s</code> per problem.</span></li>
+            </ul>
+          </div>
+
+          <div class="clean-panel crimson" style="padding: 10px 14px; margin-top: 2px;">
+            <p style="font-size: 13.2px; line-height: 1.42; color: var(--ink);">
+              <span class="strong" style="color: var(--crimson-deep);">Next Step →</span> Staying inside <code>1.7B</code> hits a wall. Instead, let us build a <strong>Router Helper</strong> to send hard problems to <code>8B</code>!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span>MATH 550 Final Project · Cost-Aware Inference Routing</span>
+      <div class="footer-links">
+        <a href="#slide-b5">→ Backup B5 (Qualitative Cases)</a>
+        <span class="page-num">4 / 10</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 5: OUR ROUTER HELPER (TWO-STEP RULE) ==================== -->
+  <section class="slide" id="slide-5">
+    <div class="slide-header">
+      <div class="kicker-row"><span class="kicker">04 · Our Router Helper (How It Decides)</span></div>
+      <h1 class="slide-title">Our Router Helper: Rescue Cut-Offs First, Then Route If Worth the Wait</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body" style="justify-content: space-between; padding-top: 4px;">
+      <!-- Visual Decision Flowchart -->
+      <div style="width: 100%;">
+        <svg viewBox="0 0 1120 175" width="100%" height="166" xmlns="http://www.w3.org/2000/svg" font-family="Inter, Segoe UI, sans-serif">
+          <!-- Box 1: 1.7B output -->
+          <rect x="10" y="45" width="200" height="82" rx="6" fill="#F8FAFC" stroke="#1F2328" stroke-width="1.6"/>
+          <text x="110" y="80" text-anchor="middle" font-size="14" font-weight="700" fill="#111827">1.7B First Pass</text>
+          <text x="110" y="104" text-anchor="middle" font-size="12.5" fill="#6B7280">Router judges draft</text>
+
+          <!-- Arrow 1 -> Diamond/Check -->
+          <line x1="210" y1="86" x2="262" y2="86" stroke="#4B5563" stroke-width="1.8"/>
+          <polygon points="262,86 254,81 254,91" fill="#4B5563"/>
+
+          <!-- Box 2: Check Truncation -->
+          <rect x="268" y="45" width="235" height="82" rx="6" fill="#FFFBEB" stroke="#B45309" stroke-width="1.6"/>
+          <text x="385" y="79" text-anchor="middle" font-size="14" font-weight="700" fill="#92400E">Hit 2,048 Token Cap?</text>
+          <text x="385" y="103" text-anchor="middle" font-size="12.5" fill="#78350F">(10.6% of Test problems)</text>
+
+          <!-- Branch YES -> Tier 1 -->
+          <line x1="503" y1="68" x2="578" y2="38" stroke="#B45309" stroke-width="2"/>
+          <polygon points="578,38 568,36 572,45" fill="#B45309"/>
+          <text x="536" y="42" font-size="11.5" font-weight="700" fill="#B45309">YES</text>
+          <rect x="584" y="8" width="520" height="62" rx="6" fill="#FEF3C7" stroke="#D97706" stroke-width="1.6"/>
+          <text x="606" y="34" font-size="14" font-weight="700" fill="#92400E">Step 1: Always Route Cut-Offs to 8B</text>
+          <text x="606" y="55" font-size="12.5" fill="#78350F">Cut-off answers score 0%; rescuing them gives the most reliable boost.</text>
+
+          <!-- Branch NO -> Tier 2 -->
+          <line x1="503" y1="104" x2="578" y2="134" stroke="#CF222E" stroke-width="2"/>
+          <polygon points="578,134 572,127 568,136" fill="#CF222E"/>
+          <text x="536" y="138" font-size="11.5" font-weight="700" fill="#CF222E">NO</text>
+          <rect x="584" y="102" width="520" height="66" rx="6" fill="#FEF2F2" stroke="#CF222E" stroke-width="1.6"/>
+          <text x="606" y="129" font-size="14" font-weight="700" fill="#A40E26">Step 2: Route Finished Drafts Only If Worth the Wait</text>
+          <text x="606" y="151" font-size="12.5" fill="#1F2328">Send to 8B only if net score passes cutoff τ (otherwise keep 1.7B).</text>
+        </svg>
+      </div>
+
+      <!-- Center Clean Formula -->
+      <div class="clean-panel" style="text-align: center; padding: 11px 20px; border-left: 4px solid var(--crimson);">
+        <div style="font-size: 18px; margin-bottom: 2px;">
+          $$S_\lambda(x) \;=\; \underbrace{\big(\hat{p}_8(z_x) - \hat{p}_{17}(z_x)\big)}_{\text{Can 8B Fix It? } = \; P(\text{8B fixes}) - P(\text{8B breaks})} \;-\; \underbrace{\lambda \cdot \widehat{\text{Lat}}_8(z_x)}_{\text{8B Time Penalty}}$$
+        </div>
+      </div>
+
+      <!-- Three Intuition Blocks -->
+      <div class="three-col-metrics" style="padding-top: 11px;">
+        <div>
+          <div class="metric-label">1. Can 8B Fix It? ($\hat{p}_8 - \hat{p}_{17}$)</div>
+          <div class="metric-desc" style="font-size: 13.2px; line-height: 1.44;">
+            When <code>8B</code> replaces <code>1.7B</code>, cases where both are right cancel out—leaving <strong>chance 8B fixes minus chance 8B breaks</strong>.
+          </div>
+        </div>
+        <div>
+          <div class="metric-label">2. Worth the Wait? (vs. ConfGate)</div>
+          <div class="metric-desc" style="font-size: 13.2px; line-height: 1.44;">
+            <code>ConfGate</code> only asks if <code>1.7B</code> looks wrong ($1-\hat{p}_{17}$). We check <strong>both</strong> if <code>8B</code> can help and how long it takes.
+          </div>
+        </div>
+        <div>
+          <div class="metric-label">3. How Do We Predict These?</div>
+          <div class="metric-desc" style="font-size: 13.2px; line-height: 1.44;">
+            Next slide: train simple models to predict $\hat{p}_{17}$, $\hat{p}_8$, and $\widehat{\text{Lat}}_8$ before running <code>8B</code> ($\lambda=0.0015$, <code>24.6%</code> routed on Test).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span>MATH 550 Final Project · Cost-Aware Inference Routing</span>
+      <div class="footer-links">
+        <a href="#slide-b2">→ Backup B2 (λ Sensitivity)</a>
+        <span class="page-num">5 / 10</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 6: HOW WE TRAIN THE ROUTER (CLUES & MODELS) ==================== -->
+  <section class="slide" id="slide-6">
+    <div class="slide-header">
+      <div class="kicker-row"><span class="kicker">05 · Training the Router Helper</span></div>
+      <h1 class="slide-title">How We Train the Helper: Six Real-Time Clues + Simple Class Models</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body" style="justify-content: space-between;">
+      <!-- Clean 3-Stage Split Flow -->
+      <div class="split-flow" style="grid-template-columns: 1fr auto 1fr auto 1fr; margin-bottom: 12px;">
+        <div class="split-stage train">
+          <div class="stage-name">1. Train (600 problems)</div>
+          <div class="stage-role">Disjoint from Test · Fit probability &amp; time models</div>
+        </div>
+        <div class="split-arrow">→</div>
+        <div class="split-stage val">
+          <div class="stage-name">2. Validation (200 problems)</div>
+          <div class="stage-role">Lock calibration, penalty $\lambda$, and cutoff $\tau$</div>
+        </div>
+        <div class="split-arrow">→</div>
+        <div class="split-stage test">
+          <div class="stage-name">3. Test: MATH-500 (500)</div>
+          <div class="stage-role">Used only for reporting final numbers</div>
+        </div>
+      </div>
+
+      <div class="two-col-open" style="margin-top: 2px;">
+        <!-- Left: 6 Human-Readable Clues -->
+        <div class="col-left">
+          <h2 class="col-head">6 Clues Recorded Right After 1.7B Finishes</h2>
+          <p style="font-size: 13px; color: var(--muted); margin-bottom: 10px;">
+            Only signals observable during the first pass (difficulty level &amp; true answers are hidden).
+          </p>
+          <ul class="clue-list">
+            <li class="clue-item">
+              <div class="clue-title">1. Average Confidence</div>
+              <div class="clue-desc">Mean token log-probability</div>
+            </li>
+            <li class="clue-item key">
+              <div class="clue-title">2. Weakest Step (Key Clue)</div>
+              <div class="clue-desc">Lowest token log-probability</div>
+            </li>
+            <li class="clue-item">
+              <div class="clue-title">3. Answer Confidence</div>
+              <div class="clue-desc">Confidence inside <code>\boxed{...}</code></div>
+            </li>
+            <li class="clue-item key">
+              <div class="clue-title">4. Answer Length</div>
+              <div class="clue-desc">Tokens written (cap 2,048)</div>
+            </li>
+            <li class="clue-item key">
+              <div class="clue-title">5. Finished Cleanly?</div>
+              <div class="clue-desc">Not cut off &amp; has boxed answer</div>
+            </li>
+            <li class="clue-item">
+              <div class="clue-title">6. Question Length</div>
+              <div class="clue-desc">Prompt tokens (known pre-solve)</div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Right: Simple Tabular Models -->
+        <div class="col-right">
+          <h2 class="col-head">Three Simple Models (From Class)</h2>
+          <ul class="clean-list blue-dots" style="gap: 12px;">
+            <li style="font-size: 14px;">
+              <span class="strong">Two Logistic Regressions:</span> Predict if <code>1.7B</code> got it right ($\hat{p}_{17}$) and if <code>8B</code> solves it ($\hat{p}_8$).
+            </li>
+            <li style="font-size: 14px;">
+              <span class="strong">One Ridge Regression:</span> Predicts how long <code>8B</code> will take ($\widehat{\text{Lat}}_8$, correlation $r = 0.85$ on Test).
+            </li>
+            <li style="font-size: 14px;">
+              <span class="strong">Probability Calibration:</span> Tuned on Validation (min ECE) so predicted probabilities match real win rates before subtracting $\hat{p}_8 - \hat{p}_{17}$.
+            </li>
+            <li style="font-size: 14px;">
+              <span class="strong">Why linear instead of trees?</span> With <code>600</code> rows and <code>6</code> clues, Random Forest/GBDT gave nearly identical CV scores—linear models are simpler and safer.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span>MATH 550 Final Project · Cost-Aware Inference Routing</span>
+      <div class="footer-links">
+        <a href="#slide-b4">→ Backup B4 (Calibration &amp; Grader Audit)</a>
+        <span class="page-num">6 / 10</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 7: MAIN RESULTS (FIG 1) ==================== -->
+  <section class="slide" id="slide-7">
+    <div class="slide-header">
+      <div class="kicker-row"><span class="kicker">06 · Better Tradeoff? (Main Results)</span></div>
+      <h1 class="slide-title">Better Tradeoff in Time: 40.5% Faster Latency (Despite Using More Tokens)</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body" style="justify-content: space-between;">
+      <div class="fig-wrap" style="flex: 1 1 auto; max-height: 416px;">
+        <img src="assets/fig1_pareto_slide.png" alt="Figure 1: Accuracy vs Latency and Raw Tokens" style="max-height: 410px;" />
+      </div>
+
+      <div class="three-col-metrics" style="padding-top: 12px;">
+        <div>
+          <div class="metric-label">Left Plot · Estimated Time</div>
+          <div class="metric-kpi"><span class="accent-crimson">Much Faster</span> <span style="font-size: 13.5px; font-weight: 600; color: var(--ink-secondary);">(75.4% in 27.3 s)</span></div>
+          <div class="metric-desc" style="font-size: 13px;">
+            <strong>40.5% faster</strong> than <code>8B Direct</code> (<code>78.4%</code> in <code>45.8 s</code>), trading <code>3.0%</code> accuracy.
+          </div>
+        </div>
+        <div>
+          <div class="metric-label">Right Plot · Raw Tokens</div>
+          <div class="metric-kpi"><span class="accent-amber">Uses More Tokens</span> <span style="font-size: 13.5px; font-weight: 600; color: var(--ink-secondary);">(1,038 vs. 759)</span></div>
+          <div class="metric-desc" style="font-size: 13px;">
+            Loses here (<code>+36.7%</code> tokens) because we run <code>1.7B</code> first. The <code>4×</code> speed gap flips the ranking in time.
+          </div>
+        </div>
+        <div>
+          <div class="metric-label">Same Number of Switches (k = 123)</div>
+          <div class="metric-kpi"><span class="accent-blue">Beats ConfGate</span> <span style="font-size: 13.5px; font-weight: 600; color: var(--ink-secondary);">(−5.6 s / problem)</span></div>
+          <div class="metric-desc" style="font-size: 13px;">
+            Saves <strong>5.59 s per problem</strong> vs. <code>ConfGate</code> (<code>27.3 s vs. 32.9 s</code>; <code>75.4% vs. 74.0%</code>) by skipping slow, hopeless cases.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span>MATH 550 Final Project · Cost-Aware Inference Routing</span>
+      <div class="footer-links">
+        <a href="#slide-b3">→ Backup B3 (GPU Speed Window)</a>
+        <span class="page-num">7 / 10</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 8: ERROR STRUCTURE & CASE #731 ==================== -->
+  <section class="slide" id="slide-8">
+    <div class="slide-header">
+      <div class="kicker-row"><span class="kicker">07 · Why Gains Are Modest</span></div>
+      <h1 class="slide-title">Easy to Spot 1.7B Failures (AUC 0.89), Hard to Predict 8B Rescues (AUC 0.65)</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body">
+      <div class="split-cols" style="grid-template-columns: 1.38fr 1fr; gap: 24px; align-items: stretch;">
+        <div class="fig-wrap" style="justify-content: center;">
+          <img src="assets/fig3D_decile_slide.png" alt="Figure 3D: Confidence Decile Anatomy" style="max-height: 492px;" />
+          <div class="fig-caption">
+            <strong>Figure 3D.</strong> Problems split into 10 groups from least confident (1) to most confident (10). Gray bars = <code>8B</code> token length.
+          </div>
+        </div>
+
+        <div style="border-left: 1px solid var(--rule); padding-left: 24px; display: flex; flex-direction: column; justify-content: center; gap: 14px;">
+          <div>
+            <h2 class="col-head" style="margin-bottom: 8px;">Where Gains Come From</h2>
+            <ul class="clean-list" style="gap: 8px;">
+              <li style="font-size: 13.6px;"><span class="strong">Group 1 (Cut-off): Big red jump.</span><br><span style="font-size: 12.5px; color: var(--muted);">Jumps <code>0% → 38%</code> (<code>+38%</code> rescue) — clearly worth sending.</span></li>
+              <li style="font-size: 13.6px;"><span class="strong">Group 2 (Finished): Tiny jump, huge gray bar.</span><br><span style="font-size: 12.5px; color: var(--muted);">Only <code>+4%</code> gain (<code>22% → 26%</code>), while <code>8B</code> writes <code>1,447</code> tokens.</span></li>
+              <li style="font-size: 13.6px;"><span class="strong">Why? Hard to predict what 8B can fix.</span><br><span style="font-size: 12.5px; color: var(--muted);">Clues spot <code>1.7B</code> errors well (<code>AUC 0.89</code>), but weakly predict <code>8B</code> rescue (<code>AUC 0.65</code>).</span></li>
+            </ul>
+          </div>
+
+          <div class="horiz-divider" style="margin: 2px 0;"></div>
+
+          <div class="left-accent-block blue" style="padding-top: 4px; padding-bottom: 4px;">
+            <h3 class="sub-head" style="margin-bottom: 6px; font-size: 14px;">
+              Smart Skip Example: Problem #731
+            </h3>
+            <ul class="clean-list blue-dots" style="gap: 5px;">
+              <li style="font-size: 13.2px;"><span class="strong">ConfGate sends it:</span> <code>1.7B</code> has very low confidence (<code>6.3%</code>).</li>
+              <li style="font-size: 13.2px;"><span class="strong">Our router skips it:</span> sees <code>8B</code> will also struggle (<code>8.9%</code>) and take too long (<code>108 s</code>).</li>
+              <li style="font-size: 13.2px;"><span class="strong">Actual result:</span> <code>8B</code> fails anyway after <code>86 s</code> — skipping saves wasted wait time.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span>MATH 550 Final Project · Cost-Aware Inference Routing</span>
+      <div class="footer-links">
+        <a href="#slide-b4">→ Backup B4 (Calibration &amp; Weights)</a>
+        <span class="page-num">8 / 10</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 9: STATISTICAL TESTING (FIG 4) ==================== -->
+  <section class="slide" id="slide-9">
+    <div class="slide-header">
+      <div class="kicker-row"><span class="kicker">08 · Statistical Checks</span></div>
+      <h1 class="slide-title">Paired Tests Confirm Real Gains Over 1.7B Baselines, Not Over 8B or SC</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body" style="justify-content: space-between;">
+      <div class="fig-wrap" style="flex: 1 1 auto; max-height: 412px;">
+        <img src="assets/fig4_stat_slide.png" alt="Figure 4: Marginal Accuracy and Paired Comparisons" style="max-height: 406px;" />
+      </div>
+
+      <div class="three-col-metrics" style="padding-top: 12px;">
+        <div>
+          <div class="metric-label">Why Left Overlaps, Right Clears</div>
+          <div class="metric-desc" style="font-size: 13px; line-height: 1.44;">
+            <strong>Same-question pairing removes noise.</strong> Left plots each method alone. Right compares on the same 500 problems.
+          </div>
+        </div>
+        <div>
+          <div class="metric-label" style="color: var(--crimson-deep);">Red Bars · Real Gains (Holm, 13 Tests)</div>
+          <div class="metric-desc" style="font-size: 13px; line-height: 1.44;">
+            <strong>Clearly beats small-model baselines:</strong> <code>1.7B</code> (<code>+6.4%</code>), <code>Thinking 4K</code> (<code>+18.6%</code>), <code>Self-Refine</code> (<code>+4.8%</code>), and <code>Trunc-Only</code> (<code>+2.4%</code>, $p_H = 0.038$).
+          </div>
+        </div>
+        <div>
+          <div class="metric-label" style="color: var(--blue-deep);">Blue &amp; Gray · Too Close to Call</div>
+          <div class="metric-desc" style="font-size: 13px; line-height: 1.44;">
+            <strong>No proven accuracy gap</strong> vs. <code>ConfGate</code>, <code>Adaptive SC</code>, or <code>8B</code> (<code>−3.0%</code>, $p = 0.067$). Do <strong>not</strong> claim equal accuracy to <code>8B</code> (CI reaches <code>−6.0%</code>).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span>MATH 550 Final Project · Cost-Aware Inference Routing</span>
+      <span class="page-num">9 / 10</span>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 10: VALIDATION, LIMITS & TAKEAWAYS ==================== -->
+  <section class="slide" id="slide-10">
+    <div class="slide-header">
+      <div class="kicker-row"><span class="kicker">09 · What Holds Up &amp; Takeaways</span></div>
+      <h1 class="slide-title">Validation Check, Honest Limits &amp; Main Takeaways</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body" style="justify-content: space-between;">
+      <div class="split-cols" style="grid-template-columns: 1.12fr 1fr; gap: 0; align-items: stretch; padding-top: 4px;">
+        <!-- Left: Val vs Test Check + Limits -->
+        <div class="col-divider-right" style="display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <h2 class="col-head">Validation vs. Test Check (Val 20% Cutoff)</h2>
+            <table class="booktabs" style="margin-bottom: 12px;">
+              <thead>
+                <tr>
+                  <th>Policy</th>
+                  <th class="num">Val (n = 200)</th>
+                  <th class="num">Test (n = 500)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>Truncation-Only Fallback</code></td>
+                  <td class="num">73.0% &nbsp;(22.3 s)</td>
+                  <td class="num">73.0% &nbsp;(22.3 s)</td>
+                </tr>
+                <tr class="row-highlight">
+                  <td><code>Cost-Aware Router (Ours)</code></td>
+                  <td class="num">73.0% &nbsp;(26.1 s)</td>
+                  <td class="num">75.4% &nbsp;(27.3 s)</td>
+                </tr>
+                <tr>
+                  <td><code>Naive ConfGate</code></td>
+                  <td class="num">75.0% &nbsp;(29.7 s)</td>
+                  <td class="num">73.2% &nbsp;(28.9 s)</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="clean-panel blue" style="padding: 11px 14px;">
+              <p style="font-size: 13.2px; line-height: 1.46; margin-bottom: 5px;">
+                <span class="strong" style="color: var(--blue-deep);">Works on both Val &amp; Test:</span> Rescuing cut-off answers (<code>+4.0%</code> to <code>+4.5%</code>) and saving time vs. <code>ConfGate</code> (<code>−3.6 s</code> Val / <code>−5.6 s</code> Test).
+              </p>
+              <p style="font-size: 13.2px; line-height: 1.46;">
+                <span class="strong" style="color: var(--crimson-deep);">Only seen on Test:</span> Extra gain on finished answers (<code>+2.4%</code> Tier-2 lift on Test; <code>0</code> on Val where 18 Tier-2 picks gave <code>+1/−1</code> under weak rescue AUC <code>0.65</code>).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Main Takeaways & Next Steps -->
+        <div style="padding-left: 26px; display: flex; flex-direction: column; justify-content: center;">
+          <h2 class="col-head" style="margin-bottom: 12px;">Three Main Takeaways &amp; Next Steps</h2>
+          <ol class="num-list" style="gap: 15px;">
+            <li style="font-size: 14px; line-height: 1.46;">
+              <div class="strong" style="margin-bottom: 2px;">Send cut-off answers first</div>
+              Trying harder inside <code>1.7B</code> struggles; rescuing cut-off drafts gives steady gains across datasets.
+            </li>
+            <li style="font-size: 14px; line-height: 1.46;">
+              <div class="strong" style="margin-bottom: 2px;">Cuts waiting time, not tokens</div>
+              <strong>40.5%</strong> faster estimated serial latency than <code>8B Direct</code> (using <code>+36.7%</code> more tokens) and <strong>5.6 s</strong> faster than <code>ConfGate</code> at equal switches ($k=123$).
+            </li>
+            <li style="font-size: 14px; line-height: 1.46;">
+              <div class="strong" style="margin-bottom: 2px;">Next steps</div>
+              Raise length caps (<code>4K–8K</code>), use finer step-level clues, add two-path agreement, and test on a larger sample.
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="qa-jump-bar" style="margin-top: 8px; padding-top: 8px;">
+        <span class="strong" style="color: var(--ink);">Q&amp;A Backup Slides:</span>
+        <a href="#slide-b1">B1 · Val vs. Test Table</a>
+        <a href="#slide-b2">B2 · λ × Budget Grid</a>
+        <a href="#slide-b3">B3 · GPU Speed Ratio</a>
+        <a href="#slide-b4">B4 · Calibration &amp; Grader</a>
+        <a href="#slide-b5">B5 · All 19 Results &amp; Cases</a>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span>MATH 550 Final Project · Thank you — Questions Welcome</span>
+      <span class="page-num">10 / 10</span>
+    </div>
+  </section>
+
+  <!-- ==================== BACKUP B1: S3 FULL VAL VS TEST TABLE ==================== -->
+  <section class="slide slide-backup" id="slide-b1">
+    <div class="slide-header">
+      <div class="kicker-row">
+        <span class="kicker">Backup B1 · Validation Support &amp; Tier-2 Audit</span>
+        <span class="backup-tag">Backup B1</span>
+      </div>
+      <h1 class="slide-title">Val-Locked Operating Points Across Six Target Rates &amp; Tier-2 Breakdown</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body">
+      <div class="split-cols" style="grid-template-columns: 1.42fr 1fr; gap: 24px; align-items: start;">
+        <div>
+          <table class="booktabs compact" style="font-size: 10.6px; line-height: 1.24;">
+            <thead>
+              <tr>
+                <th>Policy</th>
+                <th class="num">Val Target</th>
+                <th class="num">Val Acc (k)</th>
+                <th class="num">Val Lat</th>
+                <th class="num">Test Acc (k)</th>
+                <th class="num">Test Lat</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1.7B 1-Pass / 8B Direct</td><td class="num">—</td><td class="num">68.5% / 83.5%</td><td class="num">12.3 / 48.0s</td><td class="num">69.0% / 78.4%</td><td class="num">11.6 / 45.8s</td></tr>
+              <tr><td>Truncation-Only Fallback</td><td class="num">fixed</td><td class="num">73.0% (22)</td><td class="num">22.29 s</td><td class="num">73.0% (53)</td><td class="num">22.31 s</td></tr>
+              <tr class="row-midrule"><td>Cost-Aware Router</td><td class="num">12%</td><td class="num">73.0% (24)</td><td class="num">22.57 s</td><td class="num">73.4% (70)</td><td class="num">23.47 s</td></tr>
+              <tr class="row-highlight"><td>Cost-Aware Router</td><td class="num">20%</td><td class="num">73.0% (40)</td><td class="num">26.09 s</td><td class="num">75.4% (123)</td><td class="num">27.28 s</td></tr>
+              <tr><td>Cost-Aware Router</td><td class="num">25%</td><td class="num">75.5% (50)</td><td class="num">27.64 s</td><td class="num">76.0% (148)</td><td class="num">29.35 s</td></tr>
+              <tr><td>Cost-Aware Router</td><td class="num">30%</td><td class="num">76.5% (60)</td><td class="num">30.07 s</td><td class="num">75.8% (166)</td><td class="num">30.66 s</td></tr>
+              <tr><td>Cost-Aware Router</td><td class="num">40%</td><td class="num">77.0% (80)</td><td class="num">33.62 s</td><td class="num">75.6% (217)</td><td class="num">34.76 s</td></tr>
+              <tr><td>Cost-Aware Router</td><td class="num">50%</td><td class="num">77.5% (100)</td><td class="num">36.14 s</td><td class="num">76.8% (284)</td><td class="num">39.16 s</td></tr>
+              <tr class="row-midrule"><td>Naive ConfGate ($1-\hat{p}_{17}$)</td><td class="num">12%</td><td class="num">73.0% (24)</td><td class="num">23.13 s</td><td class="num">73.0% (57)</td><td class="num">23.10 s</td></tr>
+              <tr><td>Naive ConfGate ($1-\hat{p}_{17}$)</td><td class="num">20%</td><td class="num">75.0% (40)</td><td class="num">29.67 s</td><td class="num">73.2% (92)</td><td class="num">28.90 s</td></tr>
+              <tr><td>Naive ConfGate ($1-\hat{p}_{17}$)</td><td class="num">25%</td><td class="num">75.0% (50)</td><td class="num">33.39 s</td><td class="num">73.6% (114)</td><td class="num">31.75 s</td></tr>
+              <tr><td>Naive ConfGate ($1-\hat{p}_{17}$)</td><td class="num">30%</td><td class="num">76.5% (60)</td><td class="num">37.20 s</td><td class="num">75.2% (153)</td><td class="num">36.26 s</td></tr>
+              <tr><td>Naive ConfGate ($1-\hat{p}_{17}$)</td><td class="num">40%</td><td class="num">78.5% (80)</td><td class="num">42.83 s</td><td class="num">76.2% (214)</td><td class="num">42.74 s</td></tr>
+              <tr><td>Naive ConfGate ($1-\hat{p}_{17}$)</td><td class="num">50%</td><td class="num">79.5% (100)</td><td class="num">47.17 s</td><td class="num">76.6% (240)</td><td class="num">44.71 s</td></tr>
+              <tr class="row-midrule"><td>Pre-Gen Direct (q_len)</td><td class="num">12%</td><td class="num">70.0% (25)</td><td class="num">18.36 s</td><td class="num">70.8% (65)</td><td class="num">18.34 s</td></tr>
+              <tr><td>Pre-Gen Direct (q_len)</td><td class="num">20%</td><td class="num">71.5% (41)</td><td class="num">23.09 s</td><td class="num">72.6% (109)</td><td class="num">22.95 s</td></tr>
+              <tr><td>Pre-Gen Direct (q_len)</td><td class="num">25%</td><td class="num">72.5% (50)</td><td class="num">25.20 s</td><td class="num">73.6% (141)</td><td class="num">25.47 s</td></tr>
+              <tr><td>Pre-Gen Direct (q_len)</td><td class="num">30%</td><td class="num">74.5% (60)</td><td class="num">27.02 s</td><td class="num">73.6% (170)</td><td class="num">28.29 s</td></tr>
+              <tr><td>Pre-Gen Direct (q_len)</td><td class="num">40%</td><td class="num">77.0% (80)</td><td class="num">30.10 s</td><td class="num">75.0% (222)</td><td class="num">32.12 s</td></tr>
+              <tr><td>Pre-Gen Direct (q_len)</td><td class="num">50%</td><td class="num">78.5% (102)</td><td class="num">34.44 s</td><td class="num">76.4% (284)</td><td class="num">36.34 s</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="border-left: 1px solid var(--rule); padding-left: 22px; display: flex; flex-direction: column; gap: 16px;">
+          <div>
+            <h2 class="col-head">Tier-2 Rescue Decomposition (@Val 20%)</h2>
+            <ul class="clean-list" style="gap: 9px;">
+              <li><span class="strong">Val 200 (18 Tier-2 picks):</span> <code>+1 / −1</code> = <strong>0 net gain</strong> (random expectation <code>+2.1</code>, <code>sd 1.5</code>, $P \ge 0$ is <code>0.972</code>).</li>
+              <li><span class="strong">Test 500 (70 Tier-2 picks):</span> <code>+14 / −2</code> = <strong>+12 net gain</strong> (random expectation <code>+4.2</code>, <code>sd 3.1</code>, $P \ge 12$ is <code>0.011</code>).</li>
+              <li><span class="strong">Cost-matched ConfGate (Val):</span> Router at <code>Val 30%</code> (<code>76.5%</code>, <code>30.07 s</code>) beats ConfGate at <code>Val 20%</code> (<code>75.0%</code>, <code>29.67 s</code>).</li>
+            </ul>
+          </div>
+
+          <div class="horiz-divider" style="margin: 0;"></div>
+
+          <div class="left-accent-block blue">
+            <h3 class="sub-head">Dev CV &amp; Stability Checks</h3>
+            <p style="font-size: 13px; line-height: 1.46;">
+              In <code>8×5-fold Dev CV</code> (<code>n=800</code>, 20% budget), fixed-<code>LR/LR</code> gives <code>74.31%</code> (<code>25.7 s</code>) vs. <code>Trunc+Random</code> <code>74.09%</code> (<code>+0.22 ± 0.55 pp</code>) and <code>Trunc+ConfGate</code> <code>74.23%</code> (<code>29.2 s</code>); <code>LR/iso</code> gives <code>74.28%</code> (<code>24.9 s</code>). Across 45 calibration×$\lambda$ cells, Test stays in <strong>74.6%–75.8%</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span><a href="#slide-10" class="inline-nav">← Back to Summary (Slide 10)</a> &nbsp;|&nbsp; <a href="#slide-10" class="inline-nav">Slide 10</a></span>
+      <div class="footer-links">
+        <strong>B1</strong>
+        <a href="#slide-b2">B2</a>
+        <a href="#slide-b3">B3</a>
+        <a href="#slide-b4">B4</a>
+        <a href="#slide-b5">B5</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== BACKUP B2: S1 LAMBDA x BUDGET ==================== -->
+  <section class="slide slide-backup" id="slide-b2">
+    <div class="slide-header">
+      <div class="kicker-row">
+        <span class="kicker">Backup B2 · Hyperparameter &amp; Budget Sensitivity</span>
+        <span class="backup-tag">Backup B2</span>
+      </div>
+      <h1 class="slide-title">Sensitivity Across Penalty $\lambda$ and Val-Locked Escalation Budgets</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body" style="justify-content: space-between;">
+      <div class="fig-wrap" style="flex: 1 1 auto; max-height: 445px;">
+        <img src="assets/S1_lambda_budget_slide.png" alt="Supplementary S1: Lambda by Budget Sensitivity Heatmaps" style="max-height: 440px;" />
+      </div>
+
+      <div class="left-accent-block" style="margin-top: 8px;">
+        <p style="font-size: 13.4px; line-height: 1.45;">
+          <span class="strong">Weak identifiability of $\lambda$ vs. flat Test sensitivity:</span> Inside the pre-specified grid $\lambda \in [0, 0.002]$, <code>Val LatAUAC</code> spans only <code>0.7651–0.7680</code> (maximum <code>0.7680</code> at $\lambda = 0.0015$, plateauing near <code>0.7680</code> at $\lambda = 0.01$). At <code>Val 20%</code>, Test accuracy varies by only <strong>0.6 pp</strong> (<code>75.0%–75.6%</code>) across $[0, 0.002]$, supporting flat sensitivity rather than claiming optimality.
+        </p>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span><a href="#slide-10" class="inline-nav">← Back to Summary (Slide 10)</a> &nbsp;|&nbsp; <a href="#slide-5" class="inline-nav">Slide 5</a></span>
+      <div class="footer-links">
+        <a href="#slide-b1">B1</a>
+        <strong>B2</strong>
+        <a href="#slide-b3">B3</a>
+        <a href="#slide-b4">B4</a>
+        <a href="#slide-b5">B5</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== BACKUP B3: S2 THROUGHPUT RATIO ==================== -->
+  <section class="slide slide-backup" id="slide-b3">
+    <div class="slide-header">
+      <div class="kicker-row">
+        <span class="kicker">Backup B3 · Hardware Speed-Ratio Stress Test</span>
+        <span class="backup-tag">Backup B3</span>
+      </div>
+      <h1 class="slide-title">Latency Ranking Across Small-to-Large Throughput Ratios ($r = \text{TPS}_{1.7\text{B}} / \text{TPS}_{8\text{B}}$)</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body">
+      <div class="split-cols" style="grid-template-columns: 1.65fr 1fr; gap: 24px; align-items: center;">
+        <div class="fig-wrap">
+          <img src="assets/S2_throughput_ratio_slide.png" alt="Supplementary S2: Throughput Ratio Sensitivity" style="max-height: 495px;" />
+        </div>
+
+        <div style="border-left: 1px solid var(--rule); padding-left: 24px; display: flex; flex-direction: column; gap: 15px;">
+          <h2 class="col-head" style="margin-bottom: 2px;">Critical Crossover Boundaries</h2>
+          <ul class="clean-list" style="gap: 11px;">
+            <li>
+              <span class="strong">Observed L4 ratio:</span> $r = 4.06$ (<code>67.24 / 16.57 tok/s</code>; paired bootstrap 95% CI <code>[4.04, 4.09]</code>).
+            </li>
+            <li>
+              <span class="strong">Strictly faster band:</span> <code>Router @Val 20%</code> achieves lower estimated serial latency than both <code>8B Direct</code> and <code>Adaptive SC</code> inside <br><strong>$1.5583 &lt; r &lt; 4.5031$</strong> (approx. $1.56 &lt; r &lt; 4.50$).
+            </li>
+            <li>
+              <span class="strong">Lower bound ($r \le 1.56$):</span> <code>8B Direct</code> (<code>759.4</code> tok) is faster than paying <code>1.7B</code> upfront + <code>24.6%</code> escalation (<code>1,037.9</code> total tok).
+            </li>
+            <li>
+              <span class="strong">Upper bound ($r \ge 4.50$):</span> Multi-path <code>1.7B</code> sampling (<code>Adaptive SC</code>, <code>1,950.6</code> tok) becomes faster than escalating <code>24.6%</code> of queries to <code>8B</code>.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span><a href="#slide-10" class="inline-nav">← Back to Summary (Slide 10)</a> &nbsp;|&nbsp; <a href="#slide-7" class="inline-nav">Slide 7</a></span>
+      <div class="footer-links">
+        <a href="#slide-b1">B1</a>
+        <a href="#slide-b2">B2</a>
+        <strong>B3</strong>
+        <a href="#slide-b4">B4</a>
+        <a href="#slide-b5">B5</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== BACKUP B4: CALIBRATION & UNIFIED GRADING AUDIT ==================== -->
+  <section class="slide slide-backup" id="slide-b4">
+    <div class="slide-header">
+      <div class="kicker-row">
+        <span class="kicker">Backup B4 · Calibration &amp; Grading Integrity</span>
+        <span class="backup-tag">Backup B4</span>
+      </div>
+      <h1 class="slide-title">Probability Calibration Diagnostics and Unified Repaired Grader Audit</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body" style="justify-content: space-between;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: center; max-height: 306px;">
+        <div class="fig-wrap" style="max-height: 302px;">
+          <img src="assets/fig3b_slide.png" alt="Figure 3B: Calibration Reliability" style="max-height: 298px;" />
+        </div>
+        <div class="fig-wrap" style="max-height: 302px;">
+          <img src="assets/fig3c_slide.png" alt="Figure 3C: Standardized Linear Weights" style="max-height: 298px;" />
+        </div>
+      </div>
+
+      <div class="two-col-open" style="margin-top: 8px; border-top: 1px solid var(--rule); padding-top: 8px;">
+        <div class="col-left">
+          <h3 class="sub-head">Calibration Selection &amp; Coefficient Scope</h3>
+          <ul class="clean-list blue-dots" style="gap: 5px;">
+            <li style="font-size: 12.4px;"><code>p17</code> uncalibrated (<code>Val ECE = 0.038</code>, <code>Test ECE = 0.024</code>); <code>p8</code> 5-fold isotonic (<code>Val ECE = 0.086</code>, <code>Test ECE = 0.059</code>).</li>
+            <li style="font-size: 12.4px;">Fig 3C blue bars display pre-calibration base LR weights for <code>P(8B Correct | z_x)</code>; deployed <code>p8</code> averages 5 CV isotonic calibrators.</li>
+          </ul>
+        </div>
+        <div class="col-right">
+          <h3 class="sub-head">Unified Repaired Grader Audit (5,100 Completions)</h3>
+          <ul class="clean-list" style="gap: 5px;">
+            <li style="font-size: 12.4px;">Depth-aware comma/matrix/interval/set/root fixes corrected <strong>25 completion labels</strong> (<code>wrong → correct</code>, 0 FP) across <strong>8 problems</strong> (4 Dev, 21 Test).</li>
+            <li style="font-size: 12.4px;">Relaxed sensitivity (<code>grading_sensitivity_audit.json</code>): Train <strong>5</strong> (<code>3</code> prob.), Val <strong>0</strong>, Test <strong>11</strong> (<code>3</code> prob.). Extended probes also cover decimal thousands (<code>1,234.56</code>) and set braces (<code>\{1,234\}</code>).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span><a href="#slide-10" class="inline-nav">← Back to Summary (Slide 10)</a> &nbsp;|&nbsp; <a href="#slide-6" class="inline-nav">Slide 6</a></span>
+      <div class="footer-links">
+        <a href="#slide-b1">B1</a>
+        <a href="#slide-b2">B2</a>
+        <a href="#slide-b3">B3</a>
+        <strong>B4</strong>
+        <a href="#slide-b5">B5</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== BACKUP B5: FULL 19-ROW TABLE & REMAINING CASES ==================== -->
+  <section class="slide slide-backup" id="slide-b5">
+    <div class="slide-header">
+      <div class="kicker-row">
+        <span class="kicker">Backup B5 · Complete Results &amp; Case Studies</span>
+        <span class="backup-tag">Backup B5</span>
+      </div>
+      <h1 class="slide-title">Full 19-Configuration Comparison on MATH-500 &amp; Qualitative Examples</h1>
+      <div class="header-rule"></div>
+    </div>
+
+    <div class="slide-body">
+      <div class="split-cols" style="grid-template-columns: 1.58fr 1fr; gap: 22px; align-items: start;">
+        <div>
+          <table class="booktabs compact">
+            <thead>
+              <tr>
+                <th>Configuration</th>
+                <th class="num">Esc %</th>
+                <th class="num">Acc %</th>
+                <th class="num">Trunc %</th>
+                <th class="num">Tokens</th>
+                <th class="num">Est. Lat</th>
+                <th class="num">Batch s</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Atom 1: 1.7B Non-Think (1-Pass)</td><td class="num">0.0</td><td class="num">69.0</td><td class="num">10.6</td><td class="num">777.4</td><td class="num">11.56s</td><td class="num">0.562</td></tr>
+              <tr><td>Truncation-Only Fallback (1.7B→8B)</td><td class="num">10.6</td><td class="num">73.0</td><td class="num">5.4</td><td class="num">955.5</td><td class="num">22.31s</td><td class="num">0.825</td></tr>
+              <tr><td>Atom 2: 1.7B Self-Refine</td><td class="num">0.0</td><td class="num">70.6</td><td class="num">0.4</td><td class="num">1173.1</td><td class="num">17.45s</td><td class="num">1.180</td></tr>
+              <tr><td>Atom 3a: 1.7B Adaptive SC (2→3)</td><td class="num">0.0</td><td class="num">73.8</td><td class="num">5.0</td><td class="num">1950.6</td><td class="num">29.01s</td><td class="num">1.125</td></tr>
+              <tr><td>Atom 3b: 1.7B 3-Path Majority SC</td><td class="num">0.0</td><td class="num">73.8</td><td class="num">5.0</td><td class="num">2310.5</td><td class="num">34.36s</td><td class="num">1.460</td></tr>
+              <tr><td>Atom 5: 1.7B Thinking (max=4096)</td><td class="num">0.0</td><td class="num">56.8</td><td class="num">42.2</td><td class="num">3151.1</td><td class="num">49.02s</td><td class="num">3.726</td></tr>
+              <tr><td>Pre-Gen Direct Router (q_len, Val 20%)</td><td class="num">21.8</td><td class="num">72.6</td><td class="num">10.6</td><td class="num">757.2</td><td class="num">22.95s</td><td class="num">0.973</td></tr>
+              <tr><td>Pre-Gen Direct Router (q_len, Val 30%)</td><td class="num">34.0</td><td class="num">73.6</td><td class="num">10.6</td><td class="num">758.4</td><td class="num">28.29s</td><td class="num">1.202</td></tr>
+              <tr><td>Naive ConfGate (Val 20%)</td><td class="num">18.4</td><td class="num">73.2</td><td class="num">8.2</td><td class="num">1064.7</td><td class="num">28.90s</td><td class="num">1.017</td></tr>
+              <tr><td>Naive ConfGate (Matched k=123)</td><td class="num">24.6</td><td class="num">74.0</td><td class="num">8.8</td><td class="num">1130.6</td><td class="num">32.88s</td><td class="num">1.170</td></tr>
+              <tr><td>Hurdle + Trunc Priority (Val 20%)</td><td class="num">24.4</td><td class="num">75.4</td><td class="num">5.6</td><td class="num">1036.0</td><td class="num">27.17s</td><td class="num">1.153</td></tr>
+              <tr><td>Cost-Aware Router (Ours, Val 12%)</td><td class="num">14.0</td><td class="num">73.4</td><td class="num">5.4</td><td class="num">974.7</td><td class="num">23.47s</td><td class="num">0.905</td></tr>
+              <tr class="row-highlight"><td>Cost-Aware Router (Ours, Val 20%)</td><td class="num">24.6</td><td class="num">75.4</td><td class="num">5.6</td><td class="num">1037.9</td><td class="num">27.28s</td><td class="num">1.158</td></tr>
+              <tr><td>Cost-Aware Router (Ours, Val 25%)</td><td class="num">29.6</td><td class="num">76.0</td><td class="num">5.6</td><td class="num">1072.1</td><td class="num">29.35s</td><td class="num">1.281</td></tr>
+              <tr><td>Cost-Aware Router (Ours, Val 30%)</td><td class="num">33.2</td><td class="num">75.8</td><td class="num">5.6</td><td class="num">1093.8</td><td class="num">30.66s</td><td class="num">1.371</td></tr>
+              <tr><td>Cost-Aware Router (Ours, Val 40%)</td><td class="num">43.4</td><td class="num">75.6</td><td class="num">6.2</td><td class="num">1161.8</td><td class="num">34.76s</td><td class="num">1.618</td></tr>
+              <tr><td>Cost-Aware Router (Ours, Val 50%)</td><td class="num">56.8</td><td class="num">76.8</td><td class="num">6.4</td><td class="num">1234.6</td><td class="num">39.16s</td><td class="num">1.950</td></tr>
+              <tr class="row-midrule"><td>Atom 4: 8B Non-Think (Direct)</td><td class="num">100.0</td><td class="num">78.4</td><td class="num">9.6</td><td class="num">759.4</td><td class="num">45.82s</td><td class="num">2.453</td></tr>
+              <tr><td>100% Cascade (1.7B → 8B)</td><td class="num">100.0</td><td class="num">78.4</td><td class="num">9.6</td><td class="num">1536.7</td><td class="num">57.38s</td><td class="num">3.015</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="border-left: 1px solid var(--rule); padding-left: 20px; display: flex; flex-direction: column; gap: 16px;">
+          <div class="left-accent-block">
+            <h3 class="sub-head">Case #1512 · Self-Refine False Confirmation</h3>
+            <p style="font-size: 12.2px; color: var(--muted); margin-bottom: 5px;"><code>test/prealgebra/1512.json</code> · Level 5 · Truth: $7\pi$</p>
+            <ul class="clean-list" style="gap: 5px;">
+              <li style="font-size: 12.5px;"><code>1.7B</code> wrong: $33\pi$ (<code>530</code> tok, completed).</li>
+              <li style="font-size: 12.5px;"><code>Self-Refine</code> critique endorses error (<em>"correctly identifies..."</em>) → stays $33\pi$.</li>
+              <li style="font-size: 12.5px;">Router: $\hat{p}_{17}=0.616$, $\hat{p}_8=0.845$, $\widehat{\text{Lat}}_8=38.1\text{ s}$ ($S_\lambda=+0.172 \ge 0.081$) → escalates → <code>8B</code> solves ($7\pi$, <code>601</code> tok).</li>
+            </ul>
+          </div>
+
+          <div class="horiz-divider" style="margin: 0;"></div>
+
+          <div class="left-accent-block" style="border-left-color: var(--amber);">
+            <h3 class="sub-head">Case #488 · Truncation Rescue</h3>
+            <p style="font-size: 12.2px; color: var(--muted); margin-bottom: 5px;"><code>test/number_theory/488.json</code> · Level 4 · Truth: <code>58</code></p>
+            <ul class="clean-list" style="gap: 5px;">
+              <li style="font-size: 12.5px;"><code>1.7B</code> hits <code>2,048</code>-token cap (extracted <code>68</code>, truncated).</li>
+              <li style="font-size: 12.5px;"><code>Self-Refine</code> finishes draft but gets <code>171</code> (wrong).</li>
+              <li style="font-size: 12.5px;">Router Tier-1 escalates immediately → <code>8B</code> solves cleanly (<code>58</code>, <code>987</code> tok).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <span><a href="#slide-10" class="inline-nav">← Back to Summary (Slide 10)</a> &nbsp;|&nbsp; <a href="#slide-4" class="inline-nav">Slide 4</a></span>
+      <div class="footer-links">
+        <a href="#slide-b1">B1</a>
+        <a href="#slide-b2">B2</a>
+        <a href="#slide-b3">B3</a>
+        <a href="#slide-b4">B4</a>
+        <strong>B5</strong>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  if (typeof renderMathInElement === "function") {
+    renderMathInElement(document.body, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "$", right: "$", display: false }
+      ],
+      throwOnError: true
+    });
+  }
+  window.__katexReady = true;
+});
+</script>
+</body>
+</html>

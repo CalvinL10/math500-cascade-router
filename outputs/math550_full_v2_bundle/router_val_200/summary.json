@@ -1,0 +1,75 @@
+{
+  "atom1_1.7b_nonthink": {
+    "count": 200,
+    "accuracy": 0.685,
+    "statuses": {
+      "correct": 137,
+      "wrong": 41,
+      "invalid": 0,
+      "truncated": 22
+    },
+    "truncated_rate": 0.11,
+    "invalid_rate": 0.0,
+    "mean_out_tokens": 827.06,
+    "mean_latency_s": 0.6265036625300036
+  },
+  "atom2_1.7b_self_refine": {
+    "count": 0
+  },
+  "atom3_1.7b_sample0_acc": 0.0,
+  "atom3_count": 0,
+  "atom4_8b_nonthink": {
+    "count": 200,
+    "accuracy": 0.83,
+    "statuses": {
+      "correct": 166,
+      "wrong": 17,
+      "invalid": 0,
+      "truncated": 17
+    },
+    "truncated_rate": 0.085,
+    "invalid_rate": 0.0,
+    "mean_out_tokens": 795.48,
+    "mean_latency_s": 2.5434889728100005
+  },
+  "atom5_1.7b_thinking": {
+    "count": 0
+  },
+  "self_refine_flips": {
+    "right_to_right": 0,
+    "right_to_wrong": 0,
+    "wrong_to_right": 0,
+    "wrong_to_wrong": 0
+  },
+  "level_accuracy": {
+    "level_1": {
+      "qwen3_1.7b_acc": 0.8823529411764706,
+      "qwen3_8b_acc": 0.9411764705882353
+    },
+    "level_2": {
+      "qwen3_1.7b_acc": 0.8611111111111112,
+      "qwen3_8b_acc": 0.9444444444444444
+    },
+    "level_3": {
+      "qwen3_1.7b_acc": 0.8095238095238095,
+      "qwen3_8b_acc": 0.9761904761904762
+    },
+    "level_4": {
+      "qwen3_1.7b_acc": 0.6274509803921569,
+      "qwen3_8b_acc": 0.803921568627451
+    },
+    "level_5": {
+      "qwen3_1.7b_acc": 0.46296296296296297,
+      "qwen3_8b_acc": 0.6296296296296297
+    }
+  },
+  "features_all_finite": true,
+  "common_12_count": 0,
+  "common_14_count": 200,
+  "common_15_count": 0,
+  "elapsed_minutes": 109.25,
+  "gpu_name": "NVIDIA L4",
+  "engine": "vllm",
+  "max_new_tokens_non_think": 2048,
+  "max_new_tokens_critique": 512
+}

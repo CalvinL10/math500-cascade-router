@@ -1,0 +1,153 @@
+{
+  "router_train_600": {
+    "atom1_1.7b_first.jsonl": {
+      "count": 600,
+      "raw_acc": 0.7133333333333334,
+      "repaired_acc": 0.715,
+      "relaxed_upper_acc": 0.7183333333333334,
+      "repaired_flipped_count": 1,
+      "repaired_flipped_ids": [
+        "math_train:1629"
+      ],
+      "relaxed_extra_flipped_count": 2,
+      "relaxed_extra_flipped_ids": [
+        "math_train:7166",
+        "math_train:4467"
+      ]
+    },
+    "atom4_8b_first.jsonl": {
+      "count": 600,
+      "raw_acc": 0.8166666666666667,
+      "repaired_acc": 0.8216666666666667,
+      "relaxed_upper_acc": 0.8266666666666667,
+      "repaired_flipped_count": 3,
+      "repaired_flipped_ids": [
+        "math_train:8383",
+        "math_train:12391",
+        "math_train:1629"
+      ],
+      "relaxed_extra_flipped_count": 3,
+      "relaxed_extra_flipped_ids": [
+        "math_train:7166",
+        "math_train:4467",
+        "math_train:4575"
+      ]
+    }
+  },
+  "router_val_200": {
+    "atom1_1.7b_first.jsonl": {
+      "count": 200,
+      "raw_acc": 0.685,
+      "repaired_acc": 0.685,
+      "relaxed_upper_acc": 0.685,
+      "repaired_flipped_count": 0,
+      "repaired_flipped_ids": [],
+      "relaxed_extra_flipped_count": 0,
+      "relaxed_extra_flipped_ids": []
+    },
+    "atom4_8b_first.jsonl": {
+      "count": 200,
+      "raw_acc": 0.83,
+      "repaired_acc": 0.835,
+      "relaxed_upper_acc": 0.835,
+      "repaired_flipped_count": 1,
+      "repaired_flipped_ids": [
+        "math_train:11436"
+      ],
+      "relaxed_extra_flipped_count": 0,
+      "relaxed_extra_flipped_ids": []
+    }
+  },
+  "math500_test_500": {
+    "atom1_1.7b_first.jsonl": {
+      "count": 500,
+      "raw_acc": 0.682,
+      "repaired_acc": 0.69,
+      "relaxed_upper_acc": 0.694,
+      "repaired_flipped_count": 4,
+      "repaired_flipped_ids": [
+        "test/precalculus/1300.json",
+        "test/number_theory/417.json",
+        "test/precalculus/625.json",
+        "test/intermediate_algebra/1981.json"
+      ],
+      "relaxed_extra_flipped_count": 2,
+      "relaxed_extra_flipped_ids": [
+        "test/intermediate_algebra/47.json",
+        "test/precalculus/452.json"
+      ]
+    },
+    "atom2_1.7b_self_refine.jsonl": {
+      "count": 500,
+      "raw_acc": 0.698,
+      "repaired_acc": 0.706,
+      "relaxed_upper_acc": 0.71,
+      "repaired_flipped_count": 4,
+      "repaired_flipped_ids": [
+        "test/precalculus/1300.json",
+        "test/number_theory/417.json",
+        "test/precalculus/625.json",
+        "test/intermediate_algebra/1981.json"
+      ],
+      "relaxed_extra_flipped_count": 2,
+      "relaxed_extra_flipped_ids": [
+        "test/intermediate_algebra/47.json",
+        "test/precalculus/452.json"
+      ]
+    },
+    "atom3_1.7b_samples3.jsonl": {
+      "count": 1500,
+      "raw_acc": 0.7,
+      "repaired_acc": 0.704,
+      "relaxed_upper_acc": 0.708,
+      "repaired_flipped_count": 6,
+      "repaired_flipped_ids": [
+        "test/precalculus/1300.json#s0",
+        "test/precalculus/1300.json#s1",
+        "test/precalculus/1300.json#s2",
+        "test/precalculus/625.json#s1",
+        "test/intermediate_algebra/1981.json#s0",
+        "test/intermediate_algebra/1981.json#s1"
+      ],
+      "relaxed_extra_flipped_count": 6,
+      "relaxed_extra_flipped_ids": [
+        "test/intermediate_algebra/47.json#s0",
+        "test/precalculus/452.json#s0",
+        "test/precalculus/452.json#s1",
+        "test/precalculus/452.json#s2",
+        "test/intermediate_algebra/690.json#s1",
+        "test/intermediate_algebra/690.json#s2"
+      ]
+    },
+    "atom4_8b_first.jsonl": {
+      "count": 500,
+      "raw_acc": 0.776,
+      "repaired_acc": 0.784,
+      "relaxed_upper_acc": 0.786,
+      "repaired_flipped_count": 4,
+      "repaired_flipped_ids": [
+        "test/precalculus/1300.json",
+        "test/number_theory/417.json",
+        "test/precalculus/625.json",
+        "test/intermediate_algebra/1981.json"
+      ],
+      "relaxed_extra_flipped_count": 1,
+      "relaxed_extra_flipped_ids": [
+        "test/intermediate_algebra/690.json"
+      ]
+    },
+    "atom5_1.7b_thinking.jsonl": {
+      "count": 500,
+      "raw_acc": 0.564,
+      "repaired_acc": 0.568,
+      "relaxed_upper_acc": 0.568,
+      "repaired_flipped_count": 2,
+      "repaired_flipped_ids": [
+        "test/precalculus/1300.json",
+        "test/intermediate_algebra/1981.json"
+      ],
+      "relaxed_extra_flipped_count": 0,
+      "relaxed_extra_flipped_ids": []
+    }
+  }
+}

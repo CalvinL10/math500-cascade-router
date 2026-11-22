@@ -1,0 +1,11 @@
+# Lightweight local dependencies for Step 1A (data prep, grading) & Phases 2-3 (offline replay & plotting).
+# Heavy GPU inference dependencies (torch, transformers, accelerate) run exclusively on Google Colab.
+numpy>=1.26.0
+pandas>=2.0.0
+scipy>=1.11.0
+scikit-learn>=1.4.0
+matplotlib>=3.8.0
+sympy>=1.12
+requests>=2.31.0
+nbformat>=5.9.0
+pytest>=8.0.0
